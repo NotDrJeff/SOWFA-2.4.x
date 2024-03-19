@@ -1,0 +1,40 @@
+#!/bin/bash
+#SBATCH --job-name=p000.solve
+#SBATCH --output=log.solve
+#SBATCH --mail-user=example@example.com
+#SBATCH --mail-type=END
+#SBATCH --ntasks=600
+#SBATCH --mem-per-cpu=200M
+#SBATCH --partition=lowpri,k2-lowpri
+#SBATCH --time=1-00:00:00
+
+
+echo "*************************** Solving Precursor ***************************"
+
+# User Input
+cores=600
+runNumber=1
+
+# Set Environment
+source $HOME/.bashrc
+sowfa24x
+
+# SOWFA uses controlDict.$runNumber. OpenfOAM uses controlDict
+cp system/controlDict.$runNumber system/controlDict
+
+echo "Starting OpenFOAM job at: " $(date)
+echo "using " $cores " cores"
+
+# Run the flow field initializer for first run
+if [ $runNumber -eq 1 ]; then
+   echo "Running setFieldsABL..."
+   mpirun -np $cores setFieldsABL -parallel > log.setFieldsABL 2>&1
+fi
+
+# Run the solver
+echo "Running ABLSolver..."
+mpirun -np $cores ABLSolver -parallel > log.ABLSolver.$runNumber 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+echo "*************************** Finished Solving ****************************"
