@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=p???.preprocess
+#SBATCH --job-name=p000.preprocess
 #SBATCH --output=log.preprocess
 #SBATCH --mail-user=example@example.com
 #SBATCH --mail-type=END
@@ -8,33 +8,20 @@
 #SBATCH --partition=medpri,k2-medpri
 
 
-echo ************************* Preprocessing Precursor *************************
+echo "************************ Preprocessing Precursor ************************"
 
-# User Input.
-startTime=0                     # WARNING: $startTime folder will be DELETED.
-                                #    $startTime.original folder mussts exist.
+# WARNING: 0 folder will be DELETED. 0.original folder must exist.
+# WARNING: Existing mesh and processor folders will be DELETED.
 
-updateBCType=0                  # Boolean for whether or not the boundary condition types will be updated over 
-                                #    what is in the initial conditions files. Leave it 0 for precursors
+# User Input
+cores=1              # Enter the number of cores you will preprocess on.
+                     # If cores is 1, preprocessing will be done in serial.
 
-inflowDir='cyclic'              # For inflow/outflow cases, specify the inflow direction.  Choices are 'west',
-                                #   'east', 'south', 'west', 'southWest', 'northWest', 'southEast', and
-                                #   'northEast'.  There is a 'cyclic' option too in case you need to change
-                                #    back to cyclic or simply update the number of boundary face entries.
-
-parallel=0                      # Boolean for whether or not the preprocessing is run in parallel.
-
-cores=1                         # Enter the number of cores you will preprocess on.
-
-refinementLevels=0              # If you want to refine the mesh locally for any reason, or if you are making
-                                # a uniform resolution mesh that is so large that you need to build it in serial
-                                # at lower resolution and then globally refine, set the number of refinement
-                                # levels here.  See the refineMeshSerial and refineMeshParallel functions to 
-                                # understand what they do.  The serial version runs topoSet and refineHexMesh, 
-                                # so you need to provide system/topoSetDict.local.N files where N corresponds
-                                # to the refinement level (i.e., if you are doing nested local refinement boxes.
-                                # In most cases, though, you probably will not be refining, so keep this set to 
-                                # 0.
+refinementLevels=0   # If you are making a uniform resolution mesh that is so
+                     # large that you need to build it in serial at lower
+                     # resolution and then globally refine, set the number of
+                     # refinement levels here. In most cases, though, you
+                     # probably will not be refining, so keep this set to 0.
 
 
 refineMeshGlobal() # Global mesh refinement. Performed when running in parallel.
@@ -57,48 +44,45 @@ sowfa24x
 # SOWFA uses controlDict.$runNumber. OpenfOAM uses controlDict
 cp system/controlDict.1 system/controlDict
 
-rm -rf $startTime
-cp -rf $startTime.original $startTime
+rm -rf 0
+cp -rf 0.original 0
 
-echo "Runnning blockMesh"
+echo "Runnning blockMesh..."
 cp constant/polyMesh/blockMeshDict ./
 rm -rf constant/polyMesh/*
 mv ./blockMeshDict constant/polyMesh
 blockMesh > log.blockMesh 2>&1
 
 
-if [ $parallel -eq 1 ]; then
-   echo "Running decomposePar"
+if [ $cores -gt 1 ]; then
+   echo "Running decomposePar..."
    decomposePar -cellDist -force > log.decomposePar 2>&1
 
    echo "Operating in parallel from this point"
 
-   echo "Running checkMesh"
+   echo "Running checkMesh..."
    mpirun -np $cores checkMesh -parallel > log.checkMesh.1 2>&1
 
    refineMeshGlobal $refinementLevels
 
-   echo "Running renumberMesh"
+   echo "Running renumberMesh..."
    mpirun -np $cores renumberMesh -parallel -overwrite > log.renumberMesh 2>&1
 
-   echo "Running checkMesh"
+   echo "Running checkMesh..."
    mpirun -np $cores checkMesh -parallel > log.checkMesh.2 2>&1
 
 
 else 
    echo "Operating in serial"
 
-   echo "Running renumberMesh"
-   echo "   -Renumbering the mesh with renumberMesh..."
+   echo "Running renumberMesh..."
    renumberMesh -overwrite > log.renumberMesh 2>&1
 
-   echo "Running decomposePar"
-   echo "   -Decomposing the domain with decomposePar..."
+   echo "Running decomposePar..."
    decomposePar -cellDist -force > log.decomposePar 2>&1
 
-   echo "Running checkMesh"
-   echo "   -Checking the mesh with checkMesh..."
-   checkMesh > log.checkMesh.1 2>&1
+   echo "Running checkMesh..."
+   checkMesh > log.checkMesh 2>&1
 fi
 
-echo ************************* Finished Preprocessing **************************
+echo "************************ Finished Preprocessing *************************"
