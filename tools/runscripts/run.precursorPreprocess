@@ -39,10 +39,10 @@ refineMeshGlobal() # Global mesh refinement. Performed when running in parallel.
 
 # Set Environment
 source $HOME/.bashrc
-sowfa24x
+sowfa24x || exit 1
 
 # SOWFA uses controlDict.$runNumber. OpenfOAM uses controlDict
-cp system/controlDict.1 system/controlDict
+cp system/controlDict.1 system/controlDict || exit 1
 
 rm -rf 0
 cp -rf 0.original 0
@@ -84,5 +84,7 @@ else
    echo "Running checkMesh..."
    checkMesh > log.checkMesh 2>&1
 fi
+
+rm system/controlDict
 
 echo "************************ Finished Preprocessing *************************"

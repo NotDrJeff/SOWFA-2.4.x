@@ -23,10 +23,10 @@ runNumber=1
 
 # Set Environment
 source $HOME/.bashrc
-sowfa24x
+sowfa24x || exit 1
 
 # SOWFA uses controlDict.$runNumber. OpenfOAM uses controlDict
-cp system/controlDict.$runNumber system/controlDict
+cp system/controlDict.$runNumber system/controlDict || exit 1
 
 echo "Starting OpenFOAM job at: " $(date)
 echo "using " $cores " cores"
@@ -40,6 +40,8 @@ fi
 # Run the solver
 echo "Running ABLSolver..."
 mpirun -np $cores ABLSolver -parallel > log.ABLSolver.$runNumber 2>&1
+
+rm system/controlDict
 
 echo "Ending OpenFOAM job at: " $(date)
 
