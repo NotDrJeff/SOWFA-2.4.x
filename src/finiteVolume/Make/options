@@ -9,4 +9,5 @@ EXE_INC = \
 LIB_LIBS = \
     -lOpenFOAM \
     -ltriSurface \
+    -lfiniteVolume \
     -lmeshTools
